@@ -1,6 +1,7 @@
 package org.gouveia.board.persistence.entity;
 
 import lombok.Data;
+import lombok.ToString;
 
 @Data
 public class BoardColumnEntity
