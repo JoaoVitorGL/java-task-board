@@ -2,6 +2,7 @@ package org.gouveia.board.persistence.dao;
 
 import com.mysql.cj.jdbc.StatementImpl;
 import lombok.AllArgsConstructor;
+import org.gouveia.board.dto.BoardColumnDTO;
 import org.gouveia.board.persistence.entity.BoardColumnEntity;
 
 import java.sql.Connection;
@@ -12,8 +13,7 @@ import java.util.List;
 import static org.gouveia.board.persistence.entity.BoardColumnKindEnum.findByName;
 
 @AllArgsConstructor
-public class BoardColumnDAO
-{
+public class BoardColumnDAO {
     public final Connection connection;
 
     public BoardColumnEntity insert(final BoardColumnEntity entity) throws SQLException {
@@ -48,6 +48,38 @@ public class BoardColumnDAO
                 entities.add(entity);
             }
             return entities;
+        }
+    }
+
+    public List<BoardColumnDTO> findByBoardIdWithDetails(Long id) throws SQLException {
+        List<BoardColumnDTO> dtos = new ArrayList<>();
+        var sql =
+                """
+                    SELECT bc.id,
+                           bc.name,
+                           bc.kind
+                           COUNT(SELECT c.id
+                              FROM CARDS c
+                              WHERE c.board_column_id = bc.id) cards_amount
+                    FROM BOARDS_COLUMNS bc
+                    WHERE board_id = ?
+                    ORDER BY `order`
+                """;
+        try (var statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, id);
+            statement.executeQuery();
+            var resultSet = statement.getResultSet();
+            while (resultSet.next()) {
+                var dto = new BoardColumnDTO(
+                        resultSet.getLong("bc.id"),
+                        resultSet.getString("bc.name"),
+                        findByName(resultSet.getString("bc.kind")),
+                        resultSet.getInt("cards_amount")
+                );
+
+                dtos.add(dto);
+            }
+            return dtos;
         }
     }
 }
