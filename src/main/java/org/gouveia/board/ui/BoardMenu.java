@@ -1,7 +1,9 @@
 package org.gouveia.board.ui;
 
 import lombok.AllArgsConstructor;
+import org.gouveia.board.persistence.entity.BoardColumnEntity;
 import org.gouveia.board.persistence.entity.BoardEntity;
+import org.gouveia.board.service.BoardColumnQueryService;
 import org.gouveia.board.service.BoardQueryService;
 
 import java.sql.SQLException;
@@ -78,7 +80,22 @@ public class BoardMenu {
         }
     }
 
-    private void showColumn() {
+    private void showColumn() throws SQLException {
+        var columnsIds = boardEntity.getBoardColumns().stream().map(BoardColumnEntity::getId).toList();
+        var selectedColumn = -1L;
+        while (!columnsIds.contains(selectedColumn)) {
+            System.out.printf("Escolha uma coluna do board %s\n", boardEntity.getName());
+            boardEntity.getBoardColumns().forEach(c -> System.out.printf("%s - %s [%s]\n", c.getId(), c.getName(), c.getKind()));
+            selectedColumn = scanner.nextLong();
+        }
+        try (var connection = getConnection()) {
+            var column = new BoardColumnQueryService(connection).findById(selectedColumn);
+            column.ifPresent(co -> {
+                System.out.printf("Coluna %s tipo %s\n", co.getName(), co.getKind());
+                        co.getCards().forEach(ca -> System.out.printf("Card %s - %s\nDescrição: %s",
+                                ca.getId(), ca.getTitle(), ca.getDescription()));
+            });
+        }
     }
 
     private void showCard() {
