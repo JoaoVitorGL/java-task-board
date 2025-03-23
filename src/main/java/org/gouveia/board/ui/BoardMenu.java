@@ -1,6 +1,7 @@
 package org.gouveia.board.ui;
 
 import lombok.AllArgsConstructor;
+import org.gouveia.board.dto.BoardColumnInfoDTO;
 import org.gouveia.board.persistence.entity.BoardColumnEntity;
 import org.gouveia.board.persistence.entity.BoardEntity;
 import org.gouveia.board.persistence.entity.CardEntity;
@@ -64,11 +65,21 @@ public class BoardMenu {
         card.setDescription(scanner.next());
         card.setBoardColumn(boardEntity.getInitialColumn());
         try (var connection = getConnection()) {
-            new CardService(connection).insert(card);
+            new CardService(connection).create(card);
         }
     }
 
-    private void moveCardToNextColumn() {
+    private void moveCardToNextColumn() throws SQLException {
+        System.out.println("Informe o id do card que deseja mover para a próxima coluna");
+        var cardId = scanner.nextLong();
+        var boardColumnsInfo = boardEntity.getBoardColumns().stream()
+                .map(bc -> new BoardColumnInfoDTO(bc.getId(), bc.getOrder(), bc.getKind()))
+                .toList();
+        try (var connection = getConnection()) {
+            new CardService(connection).moveToNextColumn(cardId, boardColumnsInfo);
+        } catch (RuntimeException ex) {
+            System.out.println(ex.getMessage());
+        }
     }
 
     private void blockCard() {
@@ -104,8 +115,8 @@ public class BoardMenu {
             var column = new BoardColumnQueryService(connection).findById(selectedColumn);
             column.ifPresent(co -> {
                 System.out.printf("Coluna %s tipo %s\n", co.getName(), co.getKind());
-                        co.getCards().forEach(ca -> System.out.printf("Card %s - %s\nDescrição: %s\n",
-                                ca.getId(), ca.getTitle(), ca.getDescription()));
+                co.getCards().forEach(ca -> System.out.printf("Card %s - %s\nDescrição: %s\n",
+                        ca.getId(), ca.getTitle(), ca.getDescription()));
             });
         }
     }
@@ -120,7 +131,7 @@ public class BoardMenu {
                                 System.out.printf("Card %s - %s.\n", c.id(), c.title());
                                 System.out.printf("Descrição: %s\n", c.description());
                                 System.out.println(c.blocked() ?
-                                        "Está bloqueado. Motivo: " +c.blockReason() :
+                                        "Está bloqueado. Motivo: " + c.blockReason() :
                                         "Não está bloqueado");
                                 System.out.printf("Já foi bloqueado %s vezes\n", c.blocksAmount());
                                 System.out.printf("Está na coluna %s - %s\n", c.columnId(), c.columnName());
