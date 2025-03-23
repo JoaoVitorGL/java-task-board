@@ -3,9 +3,11 @@ package org.gouveia.board.ui;
 import lombok.AllArgsConstructor;
 import org.gouveia.board.persistence.entity.BoardColumnEntity;
 import org.gouveia.board.persistence.entity.BoardEntity;
+import org.gouveia.board.persistence.entity.CardEntity;
 import org.gouveia.board.service.BoardColumnQueryService;
 import org.gouveia.board.service.BoardQueryService;
 import org.gouveia.board.service.CardQueryService;
+import org.gouveia.board.service.CardService;
 
 import java.sql.SQLException;
 import java.util.Scanner;
@@ -31,7 +33,7 @@ public class BoardMenu {
                 System.out.println("(6) - Visualizar board");
                 System.out.println("(7) - Visualizar colunas com cards");
                 System.out.println("(8) - Visualizar card");
-                System.out.println("(9) - Voltar um card para o menu anterior");
+                System.out.println("(9) - Voltar para o menu anterior");
                 System.out.println("(10) - Sair");
                 option = scanner.nextInt();
                 switch (option) {
@@ -54,7 +56,16 @@ public class BoardMenu {
         }
     }
 
-    private void createCard() {
+    private void createCard() throws SQLException {
+        var card = new CardEntity();
+        System.out.println("Informe o título do card:");
+        card.setTitle(scanner.next());
+        System.out.println("Informe o descrição do card:");
+        card.setDescription(scanner.next());
+        card.setBoardColumn(boardEntity.getInitialColumn());
+        try (var connection = getConnection()) {
+            new CardService(connection).insert(card);
+        }
     }
 
     private void moveCardToNextColumn() {
@@ -93,14 +104,14 @@ public class BoardMenu {
             var column = new BoardColumnQueryService(connection).findById(selectedColumn);
             column.ifPresent(co -> {
                 System.out.printf("Coluna %s tipo %s\n", co.getName(), co.getKind());
-                        co.getCards().forEach(ca -> System.out.printf("Card %s - %s\nDescrição: %s",
+                        co.getCards().forEach(ca -> System.out.printf("Card %s - %s\nDescrição: %s\n",
                                 ca.getId(), ca.getTitle(), ca.getDescription()));
             });
         }
     }
 
     private void showCard() throws SQLException {
-        System.out.println("Informe o id do card que deseja visualizar");
+        System.out.println("Informe o id do card que deseja visualizar:");
         var selectedCardId = scanner.nextLong();
         try (var connection = getConnection()) {
             new CardQueryService(connection).findById(selectedCardId)
